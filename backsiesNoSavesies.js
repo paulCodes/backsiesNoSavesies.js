@@ -1,123 +1,109 @@
 /*
- * backsiesNoSavesies.js 0.0.2
- * Paul Parker, http://github.com/paulCodes
+ * backsiesNoSavesies.js
+ *
+ * @version 0.0.3
+ * @author Paul Parker, http://github.com/paulCodes
+ * @requires jquery
+ *
  * backsiesNoSavesies.js is open sourced under the MIT license.
  * Portions of backsiesNoSavesies.js are inspired by Alphamale.
  * http://github.com/paulCodes/backsiesNoSavesies.js
  */
-(function(window, document, undefined) {
+;(function ($) {
 
-    var BacksiesNoSavesies = function(changeSelectors, saveSelectors, ignoreSelectors, message) {
-        this._unsaved = false;
-        this._message = message || "Warning: You have unsaved changes on this page. If you leave your changes will be lost.";
-        this._changeSelectors = changeSelectors || [":input"];
-        this._saveSelectors = saveSelectors || ["button:submit"];
-        this._ignoreSelectors = ignoreSelectors;
-        this._debug = false;
-        return 
-    }
+    $.backsies = function (options) {
 
-    /*
-     * @public
-     * Sets a custom message for the warning
-     */
-    BacksiesNoSavesies.prototype.setMessage = function(message) {
-        this._message = message;
+        var opts = $.extend({}, $.backsies.defaults, options);
+        init(opts);
+        return this.each(function () {
 
-        // return this for chaining
-        return this;
+        });
     };
 
     /*
-     * @public
-     * Sets a list of elements to ignore the changeSelectors inside
+     *  Sets the backsies event hooks
+     *  @param {object} options for backsies
      */
-    BacksiesNoSavesies.prototype.setIgnoreSelectors = function(selectors) {
-        this._ignoreSelectors = selectors;
+    function init(opts) {
+        // var changes = $(opts.changes.toString());
+        // var saves = $(opts.saves.toString());
+        // var resets = $(opts.resets.toString());
+        // var ingores = $(opts.ignores.toString());
 
-        // return this for chaining
-        return this;
-    };
+        $.each(opts.changes, function (key, value) {
+            $(value).on("change.backsies", function() {setUnsaved(true, value)});
+        });
+        $.each(opts.saves, function (key, value) {
+            $(value).off(".backsies");
+            $(value).on("change.backsies", function() {setUnsaved(false, value)});
+            $(value).on("click.backsies", function() {setUnsaved(false, value)});
+        });
+        $.each(opts.resets, function (key, value) {
+            $(value).off(".backsies");
+            $(value).on("change.backsies", function() {setUnsaved(false, value)});
+            $(value).on("click.backsies", function() {setUnsaved(false, value)});
+        });
+        $.each(opts.ignores, function (key, value) {
+            $(value).off(".backsies");
+        });
 
-    /*
-     * @public
-     * Sets unsaved
-     */
-    BacksiesNoSavesies.prototype.setUnsaved = function(unsaved, ele) {
-        setUnsaved(unsaved, ele);
-
-        // return this for chaining
-        return this;
-    };
-
-    /*
-     * @public
-     * Sets debug flag on for nice logging.
-     */
-    BacksiesNoSavesies.prototype.debug = function(isDebug) {
-        this._debug = isDebug;
-        return this;
-    } 
-
-    BacksiesNoSavesies.prototype.ignoreElement = function(ele) {
-        ele.unbind("change", setUnsaved(true, ele));
-    }
-
-    /*
-     * @private
-     * Sets the event hooks on page load
-     */
-    loadPage = function() {
-        var c_selectors = this._changeSelectors;
-        var s_selectors = this._saveSelectors;
-
-        for (e in this._changeSelectors) {
-            $(this._changeSelectors[e]).change(function(){
-                setUnsaved(true, $(this))
-            });
-        }
-
-        for (s in s_selectors) {
-            $(s_selectors[s]).click(function() {
-                setUnsaved(false, $(this));
-            });
-        }
-
-        if (this._ignoreSelectors) {
-            for (i in this._ignoreSelectors) {
-                $(this._ignoreSelectors[i]).each(function(){
-                    BacksiesNoSavesies.prototype.ignoreElement($( this ))
-                });
+        $(document).data("backsies.unsaved", opts.unsaved);
+        $.backsies.debug = opts.debug;
+        $(window).on("beforeunload", function () {
+            if ($(document).data("backsies.unsaved")) {
+                return opts.message;
             }
-        }
-
-        BacksiesNoSavesies.prototype.setUnsaved(false, this);
+        });
     }
 
     /*
-     * @private
-     * Sets a the event hooks on page unload
+     * Sets a the unsaved flag
+     * @param {bool} unsaved - value for unsaved flag, defaults to true
+     * @param {jQuery object} elem - element that fired the event
      */
-    unloadPage = function() { 
-        if(this._unsaved){
-            return this._message;
-        }
-    }
-
-    /*
-     * @private
-     * Sets a the _unsaved flag
-     */
-    setUnsaved = function(unsaved, ele) {
-        if (BacksiesNoSavesies.prototype.debug === true){
-            console.log(ele);
+    function setUnsaved(unsaved, elem) {
+        if ($.backsies.debug) {
+            console.log(elem);
             console.log(" is setting unsaved " + unsaved);
         }
-        this._unsaved = unsaved;
+        window.unsaved = unsaved;
+        $(document).data("backsies.unsaved", unsaved);
     }
 
-    window.onbeforeunload = unloadPage;
-    window.onload = loadPage;
-    window.BacksiesNoSavesies = BacksiesNoSavesies;
+    /*
+     * manually set the unsaved flag
+     * @param {Optional bool} unsaved - value to set unsaved flag. default is true
+     */
+    $.backsies.setUnsaved = function (unsaved) {
+        setUnsaved(unsaved);
+    };
 
-})(window, document);
+    /*
+     * applies backsies on change event listeners
+     * @param {jQuery object} elem - the element that backsies will bind the event listener
+     * @param {Optional bool} unsaved - value to set unsaved flag when the event fires. default is true
+     */
+    $.backsies.watchEle = function (elem, unsaved) {
+        elem.off(".backsies");
+        elem.on("change.backsies", setUnsaved(unsaved, elem));
+    };
+
+    /*
+     * removes all of the backsies event listeners
+     * @param {jQuery object} elem - the element that will all backsies listeners removed
+     */
+    $.backsies.ignoreEle = function (elem) {
+        elem.off(".backsies");
+    };
+
+    $.backsies.defaults = {
+        unsaved: false,
+        message: "Warning: You have unsaved changes on this page. If you leave your changes will be lost.",
+        changes: [":input"],
+        saves: ["button:submit"],
+        resets: ["button:cancel"],
+        ignores: [],
+        debug: false
+    };
+
+})(jQuery);
