@@ -25,10 +25,6 @@
      *  @param {object} options for backsies
      */
     function init(opts) {
-        // var changes = $(opts.changes.toString());
-        // var saves = $(opts.saves.toString());
-        // var resets = $(opts.resets.toString());
-        // var ingores = $(opts.ignores.toString());
 
         $.each(opts.changes, function (key, value) {
             $(value).on("change.backsies", function() {setUnsaved(true, value)});
@@ -101,7 +97,7 @@
         message: "Warning: You have unsaved changes on this page. If you leave your changes will be lost.",
         changes: [":input"],
         saves: ["button:submit"],
-        resets: ["button:cancel"],
+        resets: [],
         ignores: [],
         debug: false
     };
