@@ -30,14 +30,23 @@
             $(value).on("change.backsies", function() {setUnsaved(true, value)});
         });
         $.each(opts.saves, function (key, value) {
+            var domListeners = $(value).prop("onclick");
+            $(value).prop("onclick", null).off("click");
+
             $(value).off(".backsies");
             $(value).on("change.backsies", function() {setUnsaved(false, value)});
             $(value).on("click.backsies", function() {setUnsaved(false, value)});
+            $(value).on("click", domListeners);
         });
         $.each(opts.resets, function (key, value) {
+            var domListeners = $(value).prop("onclick");
+            $(value).prop("onclick", null).off("click");
+
             $(value).off(".backsies");
             $(value).on("change.backsies", function() {setUnsaved(false, value)});
             $(value).on("click.backsies", function() {setUnsaved(false, value)});
+
+            $(value).on("click", domListeners);
         });
         $.each(opts.ignores, function (key, value) {
             $(value).off(".backsies");
